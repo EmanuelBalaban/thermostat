@@ -13,6 +13,8 @@ def main():
 
     print(f'Uploading {files} to {serial_port}...')
 
+    # TODO: compile project files to .MPY
+
     for file in files:
         subprocess.run([
             'ampy',
