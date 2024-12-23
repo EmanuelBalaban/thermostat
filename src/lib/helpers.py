@@ -52,3 +52,15 @@ def create_sas_token(resource_uri: str, key: str, expiry=3600) -> str:
             f"sr={encoded_resource_uri}"
             f"&sig={encoded_signature}"
             f"&se={ttl}")
+
+
+def uuid() -> str:
+    import urandom
+
+    return "{:08x}-{:04x}-{:04x}-{:04x}-{:012x}".format(
+        urandom.getrandbits(32),
+        urandom.getrandbits(16),
+        urandom.getrandbits(16),
+        urandom.getrandbits(16),
+        (urandom.getrandbits(32) << 16) | urandom.getrandbits(16),
+    )

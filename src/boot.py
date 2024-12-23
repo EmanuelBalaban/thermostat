@@ -3,6 +3,8 @@ import config
 
 
 def connect_to_wifi():
+    print('Connecting to WiFi...')
+
     wlan = network.WLAN(network.WLAN.IF_STA)
     wlan.active(config.ENABLE_WIFI)
 

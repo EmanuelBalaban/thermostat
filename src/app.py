@@ -1,13 +1,11 @@
-import machine, utime, json, ssl
-from umqtt.simple import MQTTClient
+import machine, utime, ssl
 
 import lib.aht as aht
 import lib.helpers as helpers
+# from lib.mqtt_twin_client import MqttTwinClient
+from umqtt.simple import MQTTClient
 
 import config
-
-TWIN_URL = f"https://{config.IOT_HUB_HOSTNAME}/twins/{config.IOT_DEVICE_ID}?api-version={config.IOT_HUB_API_VERSION}"
-TOPIC_COMMAND = f'{config.IOT_DEVICE_ID}/command'
 
 state = {
     'heating_enabled': False,
@@ -41,14 +39,21 @@ def main():
     )
     mqtt_client.set_callback(mqtt_callback)
     mqtt_client.connect()
-    # TODO: subscribe to topics
     print('Connected to IoT Hub!')
+
+    # TODO: subscribe to topics
+    mqtt_client.subscribe('$iothub/twin/res/#')
+    mqtt_client.publish('$iothub/twin/GET/?$rid=7df99930-c685-4a79-9bb2-e5e7fa50e14c', 'test')
+
+    print('Requested twin...')
 
     # Main loop
     while True:
         try:
-            mqtt_client.ping()
+            print('Ping')
+
             mqtt_client.check_msg()
+            mqtt_client.ping()
 
             state['temperature'] = sensor.temperature
             if state['heating_enabled']:
@@ -58,7 +63,7 @@ def main():
             # mqtt_client.publish(TOPIC_COMMAND, message)
             # mqtt_client.check_msg()
 
-            update_device_twin()
+            # update_device_twin()
 
             utime.sleep(30)
         finally:
@@ -68,7 +73,7 @@ def main():
                 print('Unable to disconnect from IoT Hub')
 
 
-def mqtt_callback(topic: bytes, msg: bytes):
+def mqtt_callback(topic, msg):
     global state
 
     print(f'Received message from topic {topic}: {msg}')
@@ -76,28 +81,5 @@ def mqtt_callback(topic: bytes, msg: bytes):
     # TODO: update state
 
 
-def read_device_twin():
-    import urequests
-
-    global state
-
-    headers = {
-        "Authorization": f"Bearer {sas_token}",
-        "Content-Type": "application/json"
-    }
-    response = urequests.get(TWIN_URL, headers=headers)
-
-    print(response.text)
-
-
-def update_device_twin():
-    import urequests
-
-    headers = {
-        "Authorization": f"Bearer {sas_token}",
-        "Content-Type": "application/json"
-    }
-    payload = {"properties": {"reported": state}}
-    response = urequests.patch(TWIN_URL, json=payload, headers=headers)
-
-    print(response.text)
+def twin_callback(twin: dict):
+    print(twin)
