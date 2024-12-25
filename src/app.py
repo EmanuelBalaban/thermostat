@@ -1,9 +1,10 @@
-import machine, utime, ssl
+import gc, machine, asyncio
 
 import lib.aht as aht
 import lib.helpers as helpers
-# from lib.mqtt_twin_client import MqttTwinClient
-from umqtt.simple import MQTTClient
+import lib.mqtt_as as mqtt
+
+gc.collect()
 
 import config
 
@@ -14,50 +15,59 @@ state = {
     'temperature': 0.0,
     'desired_temperature': 22.0,
 }
-sas_token: str = ''
 
 
-def main():
-    global sas_token
-
+async def main():
     # Initialize temp sensor
     print('Initializing temperature sensor...')
     i2c = machine.SoftI2C(scl=machine.Pin(9), sda=machine.Pin(8))
     sensor = aht.AHT20(i2c)
+    gc.collect()
 
     # Connect to IoT hub
     print('Connecting to IoT Hub...')
     resource_uri = f"{config.IOT_HUB_HOSTNAME}/devices/{config.IOT_DEVICE_ID}/modules/{config.IOT_MODULE_ID}"
     sas_token = helpers.create_sas_token(resource_uri, config.IOT_SHARED_ACCESS_KEY)
-    mqtt_client = MQTTClient(
-        server=config.IOT_HUB_HOSTNAME,
-        client_id=f'{config.IOT_DEVICE_ID}/{config.IOT_MODULE_ID}',
-        user=f"{config.IOT_HUB_HOSTNAME}/{config.IOT_DEVICE_ID}/{config.IOT_MODULE_ID}/?api-version={config.IOT_HUB_API_VERSION}",
-        password=sas_token,
-        ssl=ssl,
-        keepalive=60
-    )
-    mqtt_client.set_callback(mqtt_callback)
-    mqtt_client.connect()
-    print('Connected to IoT Hub!')
+    gc.collect()
 
-    # TODO: subscribe to topics
-    mqtt_client.subscribe('$iothub/twin/res/#')
-    mqtt_client.publish('$iothub/twin/GET/?$rid=7df99930-c685-4a79-9bb2-e5e7fa50e14c', 'test')
+    # Set parameters
+    mqtt.config['server'] = config.IOT_HUB_HOSTNAME
+    mqtt.config['client_id'] = f'{config.IOT_DEVICE_ID}/{config.IOT_MODULE_ID}'
+    mqtt.config[
+        'user'] = f"{config.IOT_HUB_HOSTNAME}/{config.IOT_DEVICE_ID}/{config.IOT_MODULE_ID}/?api-version={config.IOT_HUB_API_VERSION}"
+    mqtt.config['password'] = sas_token
+    mqtt.config['ssl'] = True
+    gc.collect()
 
-    print('Requested twin...')
+    # TODO: define last will
 
-    # Main loop
-    while True:
-        try:
-            print('Ping')
+    mqtt.MQTTClient.DEBUG = True
+    mqtt_client = mqtt.MQTTClient(mqtt.config)
 
-            mqtt_client.check_msg()
-            mqtt_client.ping()
+    try:
+        await mqtt_client.connect(quick=True)
+        print('Connected to IoT Hub!')
+        gc.collect()
+
+        for coroutine in (up, messages):
+            asyncio.create_task(coroutine(mqtt_client))
+
+        # Main loop
+        while True:
+            await asyncio.sleep(0)
 
             state['temperature'] = sensor.temperature
             if state['heating_enabled']:
                 state['relay_state'] = state['temperature'] < state['desired_temperature']
+
+            print('Current state is ', state, '\n')
+
+            # Request device twin
+            await mqtt_client.publish(
+                topic='$iothub/twin/GET/?$rid={}'.format(helpers.uuid()),
+                msg='',
+                qos=1
+            )
 
             # message = json.dumps(state)
             # mqtt_client.publish(TOPIC_COMMAND, message)
@@ -65,21 +75,22 @@ def main():
 
             # update_device_twin()
 
-            utime.sleep(30)
-        finally:
-            try:
-                mqtt_client.disconnect()
-            except:
-                print('Unable to disconnect from IoT Hub')
+            await asyncio.sleep(30)
+    finally:
+        mqtt_client.close()
 
 
-def mqtt_callback(topic, msg):
-    global state
-
-    print(f'Received message from topic {topic}: {msg}')
-
-    # TODO: update state
+async def messages(client: mqtt.MQTTClient):
+    """ Respond to incoming MQTT messages """
+    async for topic, msg, retained in client.queue:
+        print(f'Received message from topic {topic}: {msg}')
 
 
-def twin_callback(twin: dict):
-    print(twin)
+async def up(client: mqtt.MQTTClient):
+    """ Respond to connection changes with MQTT client """
+    while True:
+        await client.up.wait()
+        client.up.clear()
+
+        # Subscribe to topics
+        await client.subscribe('$iothub/twin/res/#')

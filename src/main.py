@@ -1,8 +1,8 @@
-import machine, sys, utime
+import asyncio, machine, sys, utime
 import app
 
 try:
-    app.main()
+    asyncio.run(app.main())
 except Exception as e:
     print(f"Fatal error in main:")
     sys.print_exception(e)
