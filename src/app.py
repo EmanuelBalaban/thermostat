@@ -8,12 +8,13 @@ gc.collect()
 
 import config
 
+# Heating enabled and desired temperature can be set from outside
 state = {
-    'heating_enabled': False,
+    'heating_enabled': True,
     'relay_state': False,
     'gas_detected': False,
     'temperature': 0.0,
-    'desired_temperature': 22.0,
+    'desired_temperature': 28.0,
 }
 
 
@@ -41,6 +42,7 @@ async def main():
     client_id = bytes(client_id, 'utf-8')
 
     # Set parameters
+    mqtt.config['queue_len'] = 10
     mqtt.config['ssid'] = config.WIFI_SSID
     mqtt.config['wifi_pw'] = config.WIFI_PASSWD
     mqtt.config['server'] = config.IOT_HUB_HOSTNAME
@@ -63,29 +65,25 @@ async def main():
         for coroutine in (up, messages):
             asyncio.create_task(coroutine(mqtt_client))
 
+        # Request device twin
+        await request_device_twin(mqtt_client)
+
         # Main loop
         while True:
             await asyncio.sleep(0)
+
+            state_clone = set(state.items())
 
             state['temperature'] = sensor.temperature
             if state['heating_enabled']:
                 state['relay_state'] = state['temperature'] < state['desired_temperature']
 
-            print('Current state is ', state, '\n')
+            diff = set(state.items()) - state_clone
 
-            # Request device twin
-            await mqtt_client.publish(
-                topic='$iothub/twin/GET/?$rid={}'.format(helpers.uuid()),
-                msg='',
-                qos=1
-            )
+            print('Updating device twin: ', diff)
+            await update_device_twin(mqtt_client, dict(diff))
 
-            # message = json.dumps(state)
-            # mqtt_client.publish(TOPIC_COMMAND, message)
-            # mqtt_client.check_msg()
-
-            # update_device_twin()
-
+            gc.collect()
             await asyncio.sleep(30)
     finally:
         mqtt_client.close()
@@ -93,8 +91,27 @@ async def main():
 
 async def messages(client: mqtt.MQTTClient):
     """ Respond to incoming MQTT messages """
+    topic: bytes
+    msg: bytes
+    retained: bool
+
     async for topic, msg, retained in client.queue:
+        await asyncio.sleep(0)  # Allow other instances to be scheduled
+
         print(f'Received message from topic {topic}: {msg}')
+
+        topic: str = topic.decode()
+
+        if topic.startswith('$iothub/twin/res/200/') and len(msg) > 0:
+            # Make sure it's a GET response
+
+            import json
+
+            device_twin = json.loads(msg)
+
+            print('Got device twin: ', device_twin)
+
+        gc.collect()
 
 
 async def up(client: mqtt.MQTTClient):
@@ -105,3 +122,20 @@ async def up(client: mqtt.MQTTClient):
 
         # Subscribe to topics
         await client.subscribe('$iothub/twin/res/#')
+        await client.subscribe('$iothub/twin/PATCH/properties/reported/#')
+        await client.subscribe('$iothub/twin/PATCH/properties/desired/#')
+
+
+async def request_device_twin(client: mqtt.MQTTClient):
+    """ Request device twin """
+    # https://learn.microsoft.com/en-us/azure/iot/iot-mqtt-connect-to-iot-hub#retrieving-a-device-twins-properties
+    topic = '$iothub/twin/GET/?$rid={}'.format(helpers.uuid())
+    await client.publish(topic, b'', qos=1)
+
+
+async def update_device_twin(client: mqtt.MQTTClient, values: dict):
+    """ Update device twin with current state """
+    # https://learn.microsoft.com/en-us/azure/iot/iot-mqtt-connect-to-iot-hub#update-device-twins-reported-properties
+    import json
+    topic = '$iothub/twin/PATCH/properties/reported/?$rid={}'.format(helpers.uuid())
+    await client.publish(topic, json.dumps(values), qos=1)
