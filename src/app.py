@@ -31,6 +31,8 @@ async def main():
     gc.collect()
 
     # Set parameters
+    mqtt.config['ssid'] = config.WIFI_SSID
+    mqtt.config['wifi_pw'] = config.WIFI_PASSWD
     mqtt.config['server'] = config.IOT_HUB_HOSTNAME
     mqtt.config['client_id'] = f'{config.IOT_DEVICE_ID}/{config.IOT_MODULE_ID}'
     mqtt.config[

@@ -21,6 +21,9 @@ def connect_to_wifi():
             config.SUBNET_MASK,
             config.GATEWAY_ADDR,
             config.DNS_SERVER))
+    else:
+        print('Resetting ip config...')
+        wlan.ifconfig()
 
     wlan.connect(config.WIFI_SSID, config.WIFI_PASSWD)
 
