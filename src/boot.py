@@ -1,8 +1,10 @@
-import network, utime
-import config
+import gc
 
 
 def connect_to_wifi():
+    import network, utime
+    import config
+
     print('Connecting to WiFi...')
 
     wlan = network.WLAN(network.WLAN.IF_STA)
@@ -38,3 +40,10 @@ def connect_to_wifi():
 # TODO: configure hardware
 
 connect_to_wifi()
+
+gc.collect()
+
+import ntptime
+
+print('Updating time from NTP server...')
+ntptime.settime()

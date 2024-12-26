@@ -30,13 +30,22 @@ async def main():
     sas_token = helpers.create_sas_token(resource_uri, config.IOT_SHARED_ACCESS_KEY)
     gc.collect()
 
+    username = '{hostname}/{device_id}/{module_id}/?api-version={api_version}'.format(
+        hostname=config.IOT_HUB_HOSTNAME,
+        device_id=config.IOT_DEVICE_ID,
+        module_id=config.IOT_MODULE_ID,
+        api_version=config.IOT_HUB_API_VERSION)
+    client_id = '{}/{}'.format(config.IOT_DEVICE_ID, config.IOT_MODULE_ID)
+
+    username = bytes(username, 'utf-8')
+    client_id = bytes(client_id, 'utf-8')
+
     # Set parameters
     mqtt.config['ssid'] = config.WIFI_SSID
     mqtt.config['wifi_pw'] = config.WIFI_PASSWD
     mqtt.config['server'] = config.IOT_HUB_HOSTNAME
-    mqtt.config['client_id'] = f'{config.IOT_DEVICE_ID}/{config.IOT_MODULE_ID}'
-    mqtt.config[
-        'user'] = f"{config.IOT_HUB_HOSTNAME}/{config.IOT_DEVICE_ID}/{config.IOT_MODULE_ID}/?api-version={config.IOT_HUB_API_VERSION}"
+    mqtt.config['client_id'] = client_id
+    mqtt.config['user'] = username
     mqtt.config['password'] = sas_token
     mqtt.config['ssl'] = True
     gc.collect()
