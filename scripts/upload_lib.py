@@ -16,7 +16,7 @@ def main():
         '-p',
         f'{serial_port}',
         'put',
-        'src/compiled',
+        'compiled',
         '/lib'
     ])
 

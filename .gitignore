@@ -175,3 +175,6 @@ compiled
 
 # Config
 config.py
+
+# Certificates
+certs/

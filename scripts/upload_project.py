@@ -9,7 +9,7 @@ def main():
     if serial_port is None:
         return
 
-    files = [file for file in os.listdir('src') if os.path.isfile(f'src/{file}') and file.endswith('.py')]
+    files = [file for file in os.listdir() if os.path.isfile(file) and file.endswith('.py')]
 
     print(f'Uploading {files} to {serial_port}...')
 
@@ -21,7 +21,6 @@ def main():
             '-p',
             f'{serial_port}',
             'put',
-            f'src/{file}',
             f'{file}'
         ])
 
