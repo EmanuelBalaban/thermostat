@@ -4,7 +4,7 @@ import machine
 
 import config
 import lib.aht as aht
-from lib.microdot.microdot import Microdot, abort, send_file
+from lib.microdot.microdot import Microdot, abort, send_file, Response
 from lib.microdot.sse import with_sse
 
 gc.collect()
@@ -21,8 +21,12 @@ state_updates = asyncio.Event()
 
 app = Microdot()
 
+sensor: aht.AHT20
+
 
 async def main():
+    global sensor
+
     # Initialize temp sensor
     print('Initializing temperature sensor...')
     i2c = machine.SoftI2C(scl=machine.Pin(9), sda=machine.Pin(8))
@@ -56,12 +60,64 @@ async def main():
 
 @app.get('/')
 async def index(_):
-    return f'Hello thermostat!\n\nCurrent temperature is {state["temperature"]}°C'
+    update_state(
+        temperature=round(sensor.temperature, 2)
+    )
 
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Thermostat Project</title>
+        
+        <link rel="icon" href="/favicon.ico" type="image/x-icon">
+        
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                background-color: #f4f4f4;
+                color: #333;
+                text-align: center;
+            }}
+            header {{
+                background-color: #007bff;
+                color: white;
+                padding: 20px 0;
+                font-size: 24px;
+            }}
+            .content {{
+                margin: 50px auto;
+                padding: 20px;
+                max-width: 600px;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            }}
+            .temperature {{
+                font-size: 48px;
+                color: #007bff;
+                margin: 20px 0;
+            }}
+        </style>
+    </head>
+    <body>
+        <header>Thermostat Project</header>
+        <div class="content">
+            <p>Current temperature:</p>
+            <div class="temperature">{state["temperature"]}°C</div>
+        </div>
+    </body>
+    </html>
+    """
 
-@app.get('/favicon.ico')
-async def favicon(_):
-    return send_file('favicon.ico')
+    return Response(
+        body=html_content,
+        headers={'Content-Type': 'text/html'},
+    )
 
 
 @app.get('/state')
@@ -136,3 +192,33 @@ def update_state(
     if old_state != set(state.items()):
         print(state)
         state_updates.set()
+
+
+@app.get('/android-chrome-192x192.png')
+async def favicon(_):
+    return send_file('icons/android-chrome-192x192.png')
+
+
+@app.get('android-chrome-512x512.png')
+async def favicon(_):
+    return send_file('icons/android-chrome-512x512.png')
+
+
+@app.get('apple-touch-icon.png')
+async def favicon(_):
+    return send_file('icons/apple-touch-icon.png')
+
+
+@app.get('/favicon.ico')
+async def favicon(_):
+    return send_file('icons/favicon.ico')
+
+
+@app.get('favicon-16x16.png')
+async def favicon(_):
+    return send_file('icons/favicon-16x16.png')
+
+
+@app.get('favicon-32x32.png')
+async def favicon(_):
+    return send_file('icons/favicon-32x32.png')
