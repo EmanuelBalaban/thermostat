@@ -4,7 +4,7 @@ import machine
 
 import config
 import lib.aht as aht
-from lib.microdot.microdot import Microdot, abort
+from lib.microdot.microdot import Microdot, abort, send_file
 from lib.microdot.sse import with_sse
 
 gc.collect()
@@ -36,7 +36,8 @@ async def main():
         import ssl
         ssl_ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ssl_ctx.load_cert_chain('certs/cert.der', 'certs/key.der')
-    asyncio.create_task(app.start_server(debug=True, ssl=ssl_ctx))
+    port = 443 if config.USE_SSL else 80
+    asyncio.create_task(app.start_server(port=port, ssl=ssl_ctx, debug=True))
     gc.collect()
 
     try:
@@ -51,6 +52,16 @@ async def main():
             await asyncio.sleep(30)
     finally:
         app.shutdown()
+
+
+@app.get('/')
+async def index(_):
+    return f'Hello thermostat!\n\nCurrent temperature is {state["temperature"]}°C'
+
+
+@app.get('/favicon.ico')
+async def favicon(_):
+    return send_file('favicon.ico')
 
 
 @app.get('/state')
