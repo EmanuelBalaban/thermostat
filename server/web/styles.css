@@ -1,0 +1,115 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+    text-align: center;
+}
+
+header {
+    background-color: #007bff;
+    color: white;
+    padding: 20px 0;
+    font-size: 24px;
+}
+
+.content {
+    margin: 50px auto;
+    padding: 20px;
+    max-width: 600px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.temperature-display {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 20px;
+}
+
+.slider-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    transform: rotate(-90deg);
+}
+
+/* Circular track and progress */
+.slider-track {
+    fill: none;
+    stroke: #ddd;
+    stroke-width: 8;
+}
+
+.slider-progress {
+    fill: none;
+    stroke: #007bff;
+    stroke-width: 8;
+    stroke-linecap: round;
+}
+
+.slider-handle {
+    fill: #007bff;
+    cursor: pointer;
+}
+
+.temperature-value {
+    font-size: 42px;
+    color: #007bff;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.desired-temperature {
+    font-size: 20px;
+    color: #888;
+    position: absolute;
+    top: 70%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.switch {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.switch button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.switch button.off {
+    background-color: #ccc;
+    color: #333;
+}
+
+.fire-icon {
+    color: red;
+    font-size: 32px;
+    position: absolute;
+    top: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.warning-icon {
+    color: orange;
+    font-size: 32px;
+    position: absolute;
+    top: 15%;
+    left: 50%;
+    transform: translateX(-50%);
+}

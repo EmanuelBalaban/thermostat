@@ -4,7 +4,7 @@ import machine
 
 import config
 import lib.aht as aht
-from lib.microdot.microdot import Microdot, abort, send_file, Response
+from lib.microdot.microdot import Microdot, abort, send_file
 from lib.microdot.sse import with_sse
 
 gc.collect()
@@ -53,92 +53,50 @@ async def main():
             )
 
             gc.collect()
-            await asyncio.sleep(30)
+            await asyncio.sleep(config.SENSOR_POLL_TIME)
     finally:
         app.shutdown()
 
 
 @app.get('/')
-async def index(_):
-    update_state(
-        temperature=round(sensor.temperature, 2)
-    )
+async def index_html(_):
+    return send_file('web/index.html', content_type='text/html')
 
-    html_content = f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Thermostat Project</title>
-        
-        <link rel="icon" href="/favicon.ico" type="image/x-icon">
-        
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 0;
-                background-color: #f4f4f4;
-                color: #333;
-                text-align: center;
-            }}
-            header {{
-                background-color: #007bff;
-                color: white;
-                padding: 20px 0;
-                font-size: 24px;
-            }}
-            .content {{
-                margin: 50px auto;
-                padding: 20px;
-                max-width: 600px;
-                background: white;
-                border-radius: 8px;
-                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            }}
-            .temperature {{
-                font-size: 48px;
-                color: #007bff;
-                margin: 20px 0;
-            }}
-        </style>
-    </head>
-    <body>
-        <header>Thermostat Project</header>
-        <div class="content">
-            <p>Current temperature:</p>
-            <div class="temperature">{state["temperature"]}°C</div>
-        </div>
-    </body>
-    </html>
-    """
 
-    return Response(
-        body=html_content,
-        headers={'Content-Type': 'text/html'},
-    )
+@app.get('/script.js')
+async def script_js(_):
+    return send_file('web/script.js')
+
+
+@app.get('/styles.css')
+async def styles_css(_):
+    return send_file('web/styles.css')
 
 
 @app.get('/state')
 @with_sse
 async def watch_state(_, sse):
-    await sse.send(state)
+    try:
+        await sse.send(state)
 
-    while True:
-        state_clone = set(state.items())
+        while True:
+            state_clone = set(state.items())
 
-        # TODO: check if should send heartbeat
-        await state_updates.wait()
-        state_updates.clear()
+            # TODO: check if should send heartbeat
+            await state_updates.wait()
+            state_updates.clear()
 
-        diff = set(state.items()) - state_clone
+            diff = set(state.items()) - state_clone
 
-        if len(diff) != 0:
-            updates = dict(diff)
-            await sse.send(updates)
+            if len(diff) != 0:
+                updates = dict(diff)
+                await sse.send(updates)
 
-        await asyncio.sleep(0)
+            await asyncio.sleep(0)
+    except (OSError, ConnectionResetError) as e:
+        print(f"Connection error: {e}")
+    except Exception as e:
+        print(f"Unhandled error: {e}")
 
 
 @app.put('/state/heating_enabled')

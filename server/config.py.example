@@ -11,3 +11,6 @@ GATEWAY_ADDR = '192.168.1.1'
 DNS_SERVER = '8.8.8.8'
 
 USE_SSL = True
+
+# Sensor poll time in seconds
+SENSOR_POLL_TIME = 5
