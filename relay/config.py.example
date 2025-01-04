@@ -6,5 +6,6 @@ WIFI_PASSWD = ''
 # Controller url
 API_URL = ''
 
-# Sensor poll time in seconds
-SENSOR_POLL_TIME = 30
+# Poll time in seconds
+SENSOR_POLL_TIME = 5
+STATE_POLL_TIME = 5

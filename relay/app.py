@@ -1,4 +1,5 @@
-import asyncio, ujson, machine, neopixel
+import asyncio, urequests, machine, neopixel
+from urequests import Response
 
 import config
 
@@ -23,38 +24,21 @@ async def main():
 async def watch_state():
     global relay_state
 
-    host = config.API_URL.split('://')[1]
+    endpoint = f'{config.API_URL}/state/relay_state'
 
     while True:
         try:
-            reader: asyncio.StreamReader
-            writer: asyncio.StreamWriter
+            response: Response = urequests.get(endpoint)
+            new_relay_state = response.json()
 
-            # TODO: handle server restarts
-            reader, writer = await asyncio.open_connection(
-                host=host,
-                port=443,
-                ssl=True
-            )
-
-            writer.write(f'GET /state HTTP/1.1\r\nHost: {host}\r\nAccept: text/event-stream\r\n\r\n')
-
-            await writer.drain()
-
-            print('Connected to server!')
-
-            while True:
-                line = await reader.readline()
-                if line.startswith(b'data:'):
-                    event_data = line[5:].strip()
-                    updates = ujson.loads(event_data)
-                    if 'relay_state' in updates:
-                        relay_state = updates['relay_state']
-                        react_to_relay_state()
-
+            if relay_state != new_relay_state:
+                relay_state = new_relay_state
+                react_to_relay_state()
         except Exception as e:
-            print(f"Error connecting to /state: {e}")
-            await asyncio.sleep(5)  # Retry after a delay
+            print(f"Error fetching relay_state: {e}")
+
+        # Request state every X seconds
+        await asyncio.sleep(config.STATE_POLL_TIME)
 
 
 async def monitor_gas_sensor():
