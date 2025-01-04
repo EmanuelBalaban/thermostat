@@ -5,7 +5,6 @@ import machine
 import config
 import lib.aht as aht
 from lib.microdot.microdot import Microdot, abort, send_file
-from lib.microdot.sse import with_sse
 
 gc.collect()
 
@@ -41,7 +40,10 @@ async def main():
         ssl_ctx.load_cert_chain('certs/cert.der', 'certs/key.der')
     port = 443 if config.USE_SSL else 80
     asyncio.create_task(app.start_server(port=port, ssl=ssl_ctx, debug=True))
-    gc.collect()
+
+    # Wait for server to initialize
+    await asyncio.sleep(10)
+    print('Server initialized.')
 
     try:
         while True:
@@ -57,53 +59,39 @@ async def main():
         app.shutdown()
 
 
-@app.get('/')
-async def index_html(_):
-    return send_file('web/index.html', content_type='text/html')
-
-
-@app.get('/script.js')
-async def script_js(_):
-    return send_file('web/script.js')
-
-
-@app.get('/styles.css')
-async def styles_css(_):
-    return send_file('web/styles.css')
-
-
 @app.get('/state')
-@with_sse
-async def watch_state(_, sse):
-    try:
-        await asyncio.sleep_ms(10)
+async def get_state(_):
+    return state
 
-        await sse.send(state)
 
-        await asyncio.sleep_ms(10)
+@app.get('/state/heating_enabled')
+async def get_heating_enabled(_):
+    import ujson
+    return ujson.dumps(state['heating_enabled'])
 
-        while True:
-            state_clone = set(state.items())
 
-            await asyncio.sleep(config.SSE_FREQ)
+@app.get('/state/relay_state')
+async def get_heating_enabled(_):
+    import ujson
+    return ujson.dumps(state['relay_state'])
 
-            diff = set(state.items()) - state_clone
 
-            if len(diff) != 0:
-                await asyncio.sleep_ms(10)
-                updates = dict(diff)
-                await sse.send(updates)
-            else:
-                await asyncio.sleep_ms(10)
-                await sse.send(None)  # Send heartbeat
+@app.get('/state/gas_detected')
+async def get_heating_enabled(_):
+    import ujson
+    return ujson.dumps(state['gas_detected'])
 
-            await asyncio.sleep_ms(10)
-    except OSError as e:
-        print(f"Connection error: {e}")
-        return
-    except Exception as e:
-        print(f"Unhandled error: {e}")
-        return
+
+@app.get('/state/temperature')
+async def get_heating_enabled(_):
+    import ujson
+    return ujson.dumps(state['temperature'])
+
+
+@app.get('/state/desired_temperature')
+async def get_heating_enabled(_):
+    import ujson
+    return ujson.dumps(state['desired_temperature'])
 
 
 @app.patch('/state')
@@ -143,6 +131,21 @@ def update_state(
 
     if old_state != set(state.items()):
         print(state)
+
+
+@app.get('/')
+async def index_html(_):
+    return send_file('web/index.html', content_type='text/html')
+
+
+@app.get('/script.js')
+async def script_js(_):
+    return send_file('web/script.js')
+
+
+@app.get('/styles.css')
+async def styles_css(_):
+    return send_file('web/styles.css')
 
 
 @app.get('/android-chrome-192x192.png')

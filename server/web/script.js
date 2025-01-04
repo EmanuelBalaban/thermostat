@@ -51,33 +51,6 @@ function angleFromEvent(e) {
     return ((atan * 180) / Math.PI + 360) % 360;
 }
 
-function sendPatch(data) {
-    fetch('/state', {
-        method: 'PATCH', headers: {
-            'Content-Type': 'application/json',
-        }, body: JSON.stringify(data),
-    });
-}
-
-function updateState(state) {
-    if (state.temperature !== undefined) {
-        temperatureValue.textContent = `${state.temperature}°C`;
-    }
-    if (state.desired_temperature !== undefined) {
-        const newAngle = ((state.desired_temperature - 16) / 14) * 360;
-        updateSlider(newAngle);
-    }
-    if (state.relay_state !== undefined) {
-        fireIcon.style.display = state.relay_state ? 'inline' : 'none';
-    }
-    if (state.gas_detected !== undefined) {
-        warningIcon.style.display = state.gas_detected ? 'inline' : 'none';
-    }
-    if (state.heating_enabled !== undefined) {
-        heatingButton.textContent = state.heating_enabled ? 'Heating On' : 'Heating Off';
-        heatingButton.classList.toggle('off', !state.heating_enabled);
-    }
-}
 
 heatingButton.addEventListener('click', () => {
     const isEnabled = !heatingButton.classList.contains('off');
@@ -117,8 +90,49 @@ handle.addEventListener('touchstart', startDrag);
 window.addEventListener('touchmove', dragMove);
 window.addEventListener('touchend', endDrag);
 
-const eventSource = new EventSource('/state');
-eventSource.onmessage = (event) => {
-    const state = JSON.parse(event.data);
-    updateState(state);
-};
+function fetchState() {
+    fetch('/state')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(state => {
+            updateState(state); // Update the UI or application state with the response
+        })
+        .catch(error => {
+            console.error('Error fetching state:', error);
+        });
+}
+
+function updateState(state) {
+    if (state.temperature !== undefined) {
+        temperatureValue.textContent = `${state.temperature}°C`;
+    }
+    if (state.desired_temperature !== undefined && !isDragging) {
+        const newAngle = ((state.desired_temperature - 16) / 14) * 360;
+        updateSlider(newAngle);
+    }
+    if (state.relay_state !== undefined) {
+        fireIcon.style.display = state.relay_state ? 'inline' : 'none';
+    }
+    if (state.gas_detected !== undefined) {
+        warningIcon.style.display = state.gas_detected ? 'inline' : 'none';
+    }
+    if (state.heating_enabled !== undefined) {
+        heatingButton.textContent = state.heating_enabled ? 'Heating On' : 'Heating Off';
+        heatingButton.classList.toggle('off', !state.heating_enabled);
+    }
+}
+
+function sendPatch(data) {
+    fetch('/state', {
+        method: 'PATCH', headers: {
+            'Content-Type': 'application/json',
+        }, body: JSON.stringify(data),
+    }).then(_ => fetchState());
+}
+
+setInterval(fetchState, 5000);
+fetchState();
