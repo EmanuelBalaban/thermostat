@@ -1,7 +1,3 @@
-# include "BaseMQ.h"
-## Ported from https://github.com/amperka/TroykaMQ
-## Author: Alexey Tveritinov [kartun@yandex.ru]
-
 from machine import Pin, ADC
 from micropython import const
 import utime

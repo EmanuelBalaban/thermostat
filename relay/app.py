@@ -1,5 +1,6 @@
 import asyncio, urequests, machine, neopixel
 from urequests import Response
+from lib.mq2 import MQ2
 
 import config
 
@@ -10,10 +11,20 @@ neo_pixel_pin = 1
 relay_pin = 10
 gas_sensor_pin = 4
 
-gas_sensor = machine.ADC(machine.Pin(gas_sensor_pin, machine.Pin.IN))
+gas_sensor = MQ2(pinData=gas_sensor_pin, baseVoltage=3.3)
+relay = machine.Pin(relay_pin, machine.Pin.OUT)
+np = neopixel.NeoPixel(machine.Pin(neo_pixel_pin, machine.Pin.OUT), 1)
 
 
 async def main():
+    relay.off()
+    np[0] = set_brightness((0, 0, 0), 0.0)  # Black
+    np.write()
+
+    print("Calibrating the sensor...")
+    gas_sensor.calibrate()
+    print(f"Calibration completed. RO: {gas_sensor._ro}")
+
     asyncio.create_task(watch_state())
     asyncio.create_task(monitor_gas_sensor())
 
@@ -43,12 +54,21 @@ async def watch_state():
 
 async def monitor_gas_sensor():
     while True:
-        print(gas_sensor.read_uv())
+        # Read LPG concentration
+        lpg = gas_sensor.readLPG()
+        print(f"LPG: {lpg} ppm")
 
-        adc_value = gas_sensor.read()  # values between 0 and 4095
-        gas_percentage = adc_value * 100 / 4095
+        # Read methane concentration
+        methane = gas_sensor.readMethane()
+        print(f"Methane: {methane} ppm")
 
-        print(f'Gas sensor: {adc_value}\nGas percentage: {gas_percentage}')
+        # Read smoke concentration
+        smoke = gas_sensor.readSmoke()
+        print(f"Smoke: {smoke} ppm")
+
+        # Read hydrogen concentration
+        hydrogen = gas_sensor.readHydrogen()
+        print(f"Hydrogen: {hydrogen} ppm")
 
         # TODO: send patch
 
@@ -60,9 +80,6 @@ def set_brightness(color, brightness):
 
 
 def react_to_relay_state():
-    relay = machine.Pin(relay_pin, machine.Pin.OUT)
-    np = neopixel.NeoPixel(machine.Pin(neo_pixel_pin, machine.Pin.OUT), 1)
-
     if relay_state:
         np[0] = set_brightness((255, 0, 0), 0.1)  # Red
         relay.on()
