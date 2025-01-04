@@ -17,7 +17,7 @@ state = {
     'temperature': 0.0,
     'desired_temperature': 24.0,
 }
-state_updates = asyncio.Event()
+state_listeners: list[asyncio.Event] = []
 
 app = Microdot()
 
@@ -76,42 +76,30 @@ async def styles_css(_):
 @app.get('/state')
 @with_sse
 async def watch_state(_, sse):
+    # event = subscribe_to_state_updates()
+
     try:
         await sse.send(state)
 
         while True:
             state_clone = set(state.items())
 
-            # TODO: check if should send heartbeat
-            await state_updates.wait()
-            state_updates.clear()
+            # await asyncio.wait_for(event.wait(), timeout=5)
+            await asyncio.sleep(config.SSE_FREQ)
 
             diff = set(state.items()) - state_clone
 
             if len(diff) != 0:
                 updates = dict(diff)
                 await sse.send(updates)
+            else:
+                await sse.send(None)  # Send heartbeat
 
             await asyncio.sleep(0)
-    except (OSError, ConnectionResetError) as e:
+    except OSError as e:
         print(f"Connection error: {e}")
     except Exception as e:
         print(f"Unhandled error: {e}")
-
-
-@app.put('/state/heating_enabled')
-async def update_heating_enabled(request):
-    import struct
-    update_state(
-        heating_enabled=struct.unpack('?', request.body)[0],
-    )
-
-
-@app.put('/state/desired_temperature')
-async def update_desired_temperature(request):
-    update_state(
-        desired_temperature=request.json['desired_temperature'],
-    )
 
 
 @app.patch('/state')
@@ -149,7 +137,6 @@ def update_state(
 
     if old_state != set(state.items()):
         print(state)
-        state_updates.set()
 
 
 @app.get('/android-chrome-192x192.png')
@@ -180,3 +167,23 @@ async def favicon(_):
 @app.get('favicon-32x32.png')
 async def favicon(_):
     return send_file('icons/favicon-32x32.png')
+
+
+def update_state_listeners():
+    for listener in state_listeners:
+        listener.set()
+
+
+def subscribe_to_state_updates() -> asyncio.Event:
+    """
+    Create a new asyncio event for listening to state updates.
+    Returns the event object and the id of the object.
+    """
+
+    event = asyncio.Event()
+    state_listeners.append(event)
+    return event
+
+
+def unsubscribe_from_state_updates(event: asyncio.Event):
+    state_listeners.remove(event)

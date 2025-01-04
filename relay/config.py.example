@@ -1,0 +1,10 @@
+# Enable/disable wifi connectivity
+ENABLE_WIFI = True
+WIFI_SSID = ''
+WIFI_PASSWD = ''
+
+# Controller url
+API_URL = ''
+
+# Sensor poll time in seconds
+SENSOR_POLL_TIME = 30
