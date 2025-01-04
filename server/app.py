@@ -17,7 +17,6 @@ state = {
     'temperature': 0.0,
     'desired_temperature': 24.0,
 }
-state_listeners: list[asyncio.Event] = []
 
 app = Microdot()
 
@@ -76,30 +75,35 @@ async def styles_css(_):
 @app.get('/state')
 @with_sse
 async def watch_state(_, sse):
-    # event = subscribe_to_state_updates()
-
     try:
+        await asyncio.sleep_ms(10)
+
         await sse.send(state)
+
+        await asyncio.sleep_ms(10)
 
         while True:
             state_clone = set(state.items())
 
-            # await asyncio.wait_for(event.wait(), timeout=5)
             await asyncio.sleep(config.SSE_FREQ)
 
             diff = set(state.items()) - state_clone
 
             if len(diff) != 0:
+                await asyncio.sleep_ms(10)
                 updates = dict(diff)
                 await sse.send(updates)
             else:
+                await asyncio.sleep_ms(10)
                 await sse.send(None)  # Send heartbeat
 
-            await asyncio.sleep(0)
+            await asyncio.sleep_ms(10)
     except OSError as e:
         print(f"Connection error: {e}")
+        return
     except Exception as e:
         print(f"Unhandled error: {e}")
+        return
 
 
 @app.patch('/state')
@@ -112,6 +116,8 @@ async def patch_state(request):
         gas_detected=request.json.get('gas_detected'),
         desired_temperature=request.json.get('desired_temperature'),
     )
+
+    await asyncio.sleep_ms(10)
 
 
 def update_state(
@@ -167,23 +173,3 @@ async def favicon(_):
 @app.get('favicon-32x32.png')
 async def favicon(_):
     return send_file('icons/favicon-32x32.png')
-
-
-def update_state_listeners():
-    for listener in state_listeners:
-        listener.set()
-
-
-def subscribe_to_state_updates() -> asyncio.Event:
-    """
-    Create a new asyncio event for listening to state updates.
-    Returns the event object and the id of the object.
-    """
-
-    event = asyncio.Event()
-    state_listeners.append(event)
-    return event
-
-
-def unsubscribe_from_state_updates(event: asyncio.Event):
-    state_listeners.remove(event)
