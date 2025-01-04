@@ -76,7 +76,7 @@ async def styles_css(_):
 @app.get('/state')
 @with_sse
 async def watch_state(_, sse):
-    # event = subscribe_to_state_updates()
+    event = subscribe_to_state_updates()
 
     try:
         await sse.send(state)
@@ -84,15 +84,17 @@ async def watch_state(_, sse):
         while True:
             state_clone = set(state.items())
 
-            # await asyncio.wait_for(event.wait(), timeout=5)
-            await asyncio.sleep(config.SSE_FREQ)
+            try:
+                await asyncio.wait_for(event.wait(), timeout=config.SSE_FREQ)
 
-            diff = set(state.items()) - state_clone
+                diff = set(state.items()) - state_clone
 
-            if len(diff) != 0:
-                updates = dict(diff)
-                await sse.send(updates)
-            else:
+                if len(diff) != 0:
+                    updates = dict(diff)
+                    await sse.send(updates)
+                else:
+                    await sse.send(None)  # Send heartbeat
+            except (asyncio.TimeoutError, asyncio.CancelledError):
                 await sse.send(None)  # Send heartbeat
 
             await asyncio.sleep(0)
@@ -100,6 +102,8 @@ async def watch_state(_, sse):
         print(f"Connection error: {e}")
     except Exception as e:
         print(f"Unhandled error: {e}")
+    finally:
+        unsubscribe_from_state_updates(event)
 
 
 @app.patch('/state')
@@ -137,6 +141,7 @@ def update_state(
 
     if old_state != set(state.items()):
         print(state)
+        update_state_listeners()
 
 
 @app.get('/android-chrome-192x192.png')
