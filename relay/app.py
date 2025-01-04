@@ -11,9 +11,15 @@ relay_pin = 10
 gas_sensor_pin = 4
 
 gas_sensor = machine.ADC(machine.Pin(gas_sensor_pin, machine.Pin.IN))
+relay = machine.Pin(relay_pin, machine.Pin.OUT)
+np = neopixel.NeoPixel(machine.Pin(neo_pixel_pin, machine.Pin.OUT), 1)
 
 
 async def main():
+    relay.off()
+    np[0] = set_brightness((0, 0, 0), 0.0)  # Black
+    np.write()
+
     asyncio.create_task(watch_state())
     asyncio.create_task(monitor_gas_sensor())
 
@@ -60,9 +66,6 @@ def set_brightness(color, brightness):
 
 
 def react_to_relay_state():
-    relay = machine.Pin(relay_pin, machine.Pin.OUT)
-    np = neopixel.NeoPixel(machine.Pin(neo_pixel_pin, machine.Pin.OUT), 1)
-
     if relay_state:
         np[0] = set_brightness((255, 0, 0), 0.1)  # Red
         relay.on()
