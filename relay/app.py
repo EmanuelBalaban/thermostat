@@ -7,14 +7,13 @@ relay_state = False
 gas_detected = False
 
 neo_pixel_pin = 1
-relay_pin = 10
 gas_sensor_pin = 4
 
 gas_sensor = machine.ADC(machine.Pin(gas_sensor_pin, machine.Pin.IN))
 gas_sensor.atten(machine.ADC.ATTN_11DB)
 gas_sensor.width(13)
 
-relay = machine.Pin(relay_pin, machine.Pin.OUT)
+relay = machine.Pin(config.RELAY_PIN, machine.Pin.OUT)
 np = neopixel.NeoPixel(machine.Pin(neo_pixel_pin, machine.Pin.OUT), 1)
 
 ro_in_air: int = 0

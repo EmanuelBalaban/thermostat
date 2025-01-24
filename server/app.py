@@ -4,7 +4,7 @@ import machine
 
 import config
 import lib.aht as aht
-from lib.microdot.microdot import Microdot, abort, send_file
+from lib.microdot.microdot import Microdot, abort
 
 gc.collect()
 
@@ -14,7 +14,7 @@ state = {
     'relay_state': False,
     'gas_detected': False,
     'temperature': 0.0,
-    'desired_temperature': 24.0,
+    'desired_temperature': config.DEFAULT_DESIRED_TEMPERATURE,
 }
 
 app = Microdot()
@@ -27,7 +27,7 @@ async def main():
 
     # Initialize temp sensor
     print('Initializing temperature sensor...')
-    i2c = machine.SoftI2C(scl=machine.Pin(9), sda=machine.Pin(8))
+    i2c = machine.SoftI2C(scl=machine.Pin(14), sda=machine.Pin(8))
     sensor = aht.AHT20(i2c)
     gc.collect()
 
@@ -131,48 +131,3 @@ def update_state(
 
     if old_state != set(state.items()):
         print(state)
-
-
-@app.get('/')
-async def index_html(_):
-    return send_file('web/index.html', content_type='text/html')
-
-
-@app.get('/script.js')
-async def script_js(_):
-    return send_file('web/script.js')
-
-
-@app.get('/styles.css')
-async def styles_css(_):
-    return send_file('web/styles.css')
-
-
-@app.get('/android-chrome-192x192.png')
-async def favicon(_):
-    return send_file('icons/android-chrome-192x192.png')
-
-
-@app.get('android-chrome-512x512.png')
-async def favicon(_):
-    return send_file('icons/android-chrome-512x512.png')
-
-
-@app.get('apple-touch-icon.png')
-async def favicon(_):
-    return send_file('icons/apple-touch-icon.png')
-
-
-@app.get('/favicon.ico')
-async def favicon(_):
-    return send_file('icons/favicon.ico')
-
-
-@app.get('favicon-16x16.png')
-async def favicon(_):
-    return send_file('icons/favicon-16x16.png')
-
-
-@app.get('favicon-32x32.png')
-async def favicon(_):
-    return send_file('icons/favicon-32x32.png')

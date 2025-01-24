@@ -15,3 +15,5 @@ USE_SSL = True
 # Sensor poll time in seconds
 SENSOR_POLL_TIME = 5
 SSE_FREQ = 5
+
+DEFAULT_DESIRED_TEMPERATURE = 20.0

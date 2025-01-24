@@ -1,3 +1,4 @@
+import machine
 import gc
 
 
@@ -27,6 +28,10 @@ def connect_to_wifi():
         print("IP Address: {}".format(wlan.ifconfig()[0]))
 
 
+import config
+
+machine.Pin(config.RELAY_PIN, machine.Pin.OUT).off()
+
 connect_to_wifi()
 
 gc.collect()
@@ -39,7 +44,6 @@ ntptime.settime()
 gc.collect()
 
 # Power neopixel
-import machine
 
 neo_pixel_power_pin = 2
 led_pwr = machine.Pin(neo_pixel_power_pin, machine.Pin.OUT)
