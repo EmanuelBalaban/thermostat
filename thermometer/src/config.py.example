@@ -1,0 +1,39 @@
+# Enable/disable wifi connectivity
+ENABLE_WIFI = True
+WIFI_SSID = ''
+WIFI_PASSWD = ''
+
+# MQTT Settings
+MQTT_SERVER = ''
+MQTT_USER = ''
+MQTT_PASSWD = ''
+MQTT_TEMPERATURE_TOPIC = b'home/living-room/temperature'
+
+MQTT_DISCOVERY_TOPIC = b'homeassistant/sensor/living_room_temperature/config'
+MQTT_DISCOVERY_PAYLOAD = {
+    'platform': 'sensor',
+    'object_id': 'living_room_temperature',
+    'unique_id': 'living_room_temperature',
+    'name': 'Living Room Temperature',
+    'icon': 'mdi:thermometer',
+    'unit_of_measurement': '°C',
+    'state_topic': 'home/living-room/temperature',
+    'state_class': 'measurement',
+    'expire_after': 60,
+    'suggested_display_precision': 2,
+    'device_class': 'temperature',
+    'device': {
+        'identifiers': ['living_room_thermometer'],
+        'name': 'Living Room Thermometer',
+        'suggested_area': 'Living Room',
+        'manufacturer': 'GroundStudio',
+        'model': 'Carbon S2',
+        'hw_version': 'ESP32',
+        'sw_version': 'MicroPython'
+    }
+}
+
+# Sensor settings
+SCL_PIN = 14
+SDA_PIN = 8
+SENSOR_POLL_TIME = 10
