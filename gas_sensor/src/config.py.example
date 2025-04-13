@@ -1,0 +1,136 @@
+# Enable/disable wifi connectivity
+ENABLE_WIFI = True
+WIFI_SSID = ''
+WIFI_PASSWD = ''
+
+# MQTT Settings
+MQTT_SERVER = ''
+MQTT_USER = ''
+MQTT_PASSWD = ''
+
+MQTT_STATE_TOPIC = b'home/kitchen/gas'
+MQTT_RAW_STATE_TOPIC = b'home/kitchen/gas/raw'
+MQTT_DETECTED_TOPIC = b'home/kitchen/gas/detected'
+
+MQTT_DISCOVERY_DEVICE = {
+    'identifiers': ['kitchen_gas_sensor'],
+    'name': 'Kitchen Gas Sensor',
+    'suggested_area': 'Kitchen',
+    'manufacturer': 'GroundStudio',
+    'model': 'Carbon S2',
+    'hw_version': 'ESP32',
+    'sw_version': 'MicroPython'
+}
+
+MQTT_DISCOVERY_TOPIC = b'homeassistant/sensor/kitchen_gas_sensor/config'
+MQTT_DISCOVERY_PAYLOAD = {
+    'device': MQTT_DISCOVERY_DEVICE,
+    'object_id': 'kitchen_gas_sensor',
+    'unique_id': 'kitchen_gas_sensor',
+    'platform': 'sensor',
+    'state_class': 'measurement',
+    'name': 'Kitchen Gas Sensor (w/o RO in Air)',
+    'state_topic': MQTT_STATE_TOPIC,
+    'suggested_display_precision': 2,
+    'expire_after': 60,
+}
+
+MQTT_RAW_DISCOVERY_TOPIC = b'homeassistant/sensor/kitchen_gas_sensor_raw/config'
+MQTT_RAW_DISCOVERY_PAYLOAD = {
+    'device': MQTT_DISCOVERY_DEVICE,
+    'object_id': 'kitchen_gas_sensor_raw',
+    'unique_id': 'kitchen_gas_sensor_raw',
+    'platform': 'sensor',
+    'state_class': 'measurement',
+    'name': 'Kitchen Gas Sensor (Raw)',
+    'state_topic': MQTT_RAW_STATE_TOPIC,
+    'suggested_display_precision': 2,
+    'expire_after': 60,
+}
+
+MQTT_DETECTED_DISCOVERY_TOPIC = b'homeassistant/binary_sensor/kitchen_gas_detected/config'
+MQTT_DETECTED_DISCOVERY_PAYLOAD = {
+    'device': MQTT_DISCOVERY_DEVICE,
+    'object_id': 'kitchen_gas_detected',
+    'unique_id': 'kitchen_gas_detected',
+    'platform': 'binary_sensor',
+    'device_class': 'gas',
+    'name': 'Kitchen Gas Detected',
+    'state_topic': MQTT_DETECTED_TOPIC,
+    'payload_on': 'on',
+    'payload_off': 'off',
+    'expire_after': 600, # 10 minutes
+}
+
+# NeoPixel
+NEO_PIXEL_POWER_PIN = 2
+NEO_PIXEL_DATA_PIN = 1
+
+# Sensor settings
+SENSOR_PIN = 4
+SENSOR_POLL_TIME = 10
+SENSOR_RECALIBRATION_THRESHOLD = 20
+SENSOR_CALIBRATION_STEPS = 10
+SENSOR_CALIBRATION_WAIT_TIME = 1
+SENSOR_ALARM_THRESHOLD = 1000
+
+# Calibration values
+# The following values are for a HANWEI MQ-2 Sensor. The values were extracted from the official datasheet.
+# Equation used to calculate A and B constants: 
+# lg(PPM) = a * lg(Rs/Ro) + b
+
+# solve\:for\:x\:and\:y,\:\log _{10}\left(200\right)=x\:\cdot \log _{10}\left(2.1\right)\:+\:y,\:\log _{10}\left(1000\right)=x\:\cdot \log _{10}\left(1.0\right)\:+\:y
+
+# Hydrogen
+# H2_200_PPM = 2.1 # Rs/Ro
+# H2_1000_PPM = 1.0
+H2_A = -2.17
+H2_B = 3.0
+
+# LPG
+# LPG_200_PPM = 1.75
+# LPG_1000_PPM = 0.79
+LPG_A = -2.024
+LPG_B = 2.793
+
+# CH4
+# CH4_200_PPM = 3.0
+# CH4_1000_PPM = 1.8
+CH4_A = -3.150
+CH4_B = 3.804
+
+# CO
+# CO_200_PPM = 5.0
+# CO_1000_PPM = 3.1
+CO_A = -3.367
+CO_B = 4.654
+
+# Alcohol
+# ALCOHOL_200_PPM = 2.9
+# ALCOHOL_1000_PPM = 1.75
+ALCOHOL_A = -3.186
+ALCOHOL_B = 3.774
+
+# Smoke
+# SMOKE_200_PPM = 3.5
+# SMOKE_1000_PPM = 1.9
+SMOKE_A = -2.634
+SMOKE_B = 3.734
+
+# Propane
+# PROPANE_200_PPM = 1.75
+# PROPANE_1000_PPM = 0.81
+PROPANE_A = -2.089
+PROPANE_B = 2.809
+
+from gas_sensor_type import GasSensorType
+
+GAS_TYPES = [
+    GasSensorType("H2", H2_A, H2_B),
+    GasSensorType("LPG", LPG_A, LPG_B),
+    GasSensorType("CH4", CH4_A, CH4_B),
+    GasSensorType("CO", CO_A, CO_B),
+    GasSensorType("Alcohol", ALCOHOL_A, ALCOHOL_B),
+    GasSensorType("Smoke", SMOKE_A, SMOKE_B),
+    GasSensorType("Propane", PROPANE_A, PROPANE_B),
+]
